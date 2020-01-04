@@ -1,0 +1,165 @@
+---
+title: 'VISUALIZACION DE DATOS: PEC2'
+author: "Autor: Francisco Ramirez Fominaya"
+date: "Noviembre 2019"
+output:
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 4
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=8, fig.height=4) 
+
+library(knitr)
+library(readxl)
+library(dplyr)
+library(xlsx)
+```
+
+## Planteamiento y carga de datos.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Cargamos el juego de datos
+file_csv <- "pax_all_agreements_data.xlsx"
+df1 <- read_xlsx("pax_all_agreements_data.xlsx")
+# 
+str(df1)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Comprabaciones para limpieza de datos
+# Análisis de valores nulos
+colSums(is.na(df1))
+# Análisis de valores vacíos
+colSums(df1=="" | df1==" ")
+# Análisis de valores duplicados
+nrow(df1[duplicated(df1), ])
+# ¿Con qué variables tendría sentido un proceso de discretización?
+apply(df1,2, function(x) length(unique(x)))
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Creamos una nueva tabla "df2" con todos los cambios para respetar la original
+# Borramos campos sin interés para el análisis
+borrar <- c("Part","ThrdPart","OthAgr","Loc1ISO","Loc2ISO","Loc1GWNO","Loc2GWNO","UcdpCon","UcdpAgr","PamAgr","CowWar","HrIi")
+df2 <- df1[ , !(names(df1) %in% borrar)]
+#str(df2)
+# Convertimos atributos numéricos en factor
+df2$PP <- as.factor(df2$PP)
+df2$AgtId <- as.factor(df2$AgtId)
+df2$GCh <- as.factor(df2$GCh)
+df2$GDis <- as.factor(df2$GDis)
+df2$GAge <- as.factor(df2$GAge)
+df2$GMig <- as.factor(df2$GMig)
+df2$GRa <- as.factor(df2$GRa)
+df2$GRe <- as.factor(df2$GRe)
+df2$GInd <- as.factor(df2$GInd)
+df2$GOth <- as.factor(df2$GOth)
+df2$GRef <- as.factor(df2$GRef)
+df2$GSoc <- as.factor(df2$GSoc)
+df2$GeWom <- as.factor(df2$GeWom)
+df2$GeMe <- as.factor(df2$GeMe)
+df2$GeSo <- as.factor(df2$GeSo)
+df2$GeFa <- as.factor(df2$GeFa)
+df2$StDef <- as.factor(df2$StDef)
+df2$ConRen <- as.factor(df2$ConRen)
+df2$Cons <- as.factor(df2$Cons)
+df2$Ele <- as.factor(df2$Ele)
+df2$PolPar <- as.factor(df2$PolPar)
+df2$Civso <- as.factor(df2$Civso)
+df2$Tral <- as.factor(df2$Tral)
+df2$Pubad <- as.factor(df2$Pubad)
+df2$Polps <- as.factor(df2$Polps)
+df2$PpsSt <- as.factor(df2$PpsSt)
+df2$Eps <- as.factor(df2$Eps)
+df2$Mps <- as.factor(df2$Mps)
+df2$HrGen <- as.factor(df2$HrGen)
+df2$EqGen <- as.factor(df2$EqGen)
+df2$HrDem <- as.factor(df2$HrDem)
+df2$Prot <- as.factor(df2$Prot)
+df2$HrFra <- as.factor(df2$HrFra)
+df2$HrCp <- as.factor(df2$HrCp)
+df2$HrSec <- as.factor(df2$HrSec)
+df2$HrNi <- as.factor(df2$HrNi)
+df2$HrMob <- as.factor(df2$HrMob)
+df2$HrDet <- as.factor(df2$HrDet)
+df2$Med <- as.factor(df2$Med)
+df2$HrCit <- as.factor(df2$HrCit)
+#str(df2)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Tratamiento de valores nulos. 
+# Para el caso de columnas que sean de tipo numéricas, o tipo string, pero no a los factores
+df2$StageSub[is.na(df2$StageSub)] <- "Sin Especificar"
+df2$PPName[is.na(df2$PPName)] <- "Plan de Paz sin nombre";
+# Para el caso de columnas que sean de tipo Factor
+# Obtener niveles y agregar adicionalmente (+1) el valor que se quiera incluir, en este caso "9999"
+levels <- levels(df2$PP)
+levels[length(levels) + 1] <- "9999"
+# Refactorizar para incluir "9999" como un nivel de factor
+# y reemplazar los nulos por el nuevo factor "9999"
+df2$PP <- factor(df2$PP, levels = levels)
+df2$PP[is.na(df2$PP)] <- "9999"
+# Lo convierto a caracter (convertir en factor anteriormente ha sido ppor motivos academicos)
+df2$PP <- as.character(df2$PP)
+# Comprobamos que hemos quitado los valores nulos valores nulos
+colSums(is.na(df2))
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Renombrar columnas
+df2 <- rename(df2, "Pais" = "Con", 
+              "Tipo_Conflicto" = "Contp",
+              "PP_id" = "PP", "PP_Nombre" = "PPName", "Region" = "Reg", "Acuerdo_id" = "AgtId", "Acuerdo" = "Agt", "Fecha_Firma" = "Dat",
+              "Estado" = "Status", "Paginas" = "Lgt", "N_caracteres" = "N_characters", "Tpo_Acuerdo" = "Agtp", "Etapa" = "Stage", "Subetapa" = "StageSub",
+              "G_Jovenes" = "GCh", "G_Discapacidad" = "GDis", "G_Ancianos" = "GAge", "G_Migracion" = "GMig", "G_Racistas" = "GRa", "G_Religion" = "GRe", 
+              "G_Indigenas" = "GInd", "G_Otros _Grupos" = "GOth", "G_Refugiados" = "GRef", "G_Clase_Social" = "GSoc", "G_Femenino" = "GeWom",
+              "G_Masculino" = "GeMe", "G_Sesualidad" = "GeSo", "G_Familia" = "GeFa", "Def_Estado" = "StDef", "Inst_Politicas" = "Pol", "Confirma_Constitucion" = "ConRen",
+              "Renov_Constitucional" = "Cons", "Elecciones" = "Ele", "Refor_PPoliticos" = "PolPar", "Soc_Civil" = "Civso", "Lideres" = "Tral", "Admon_Public" = "Pubad",
+              "Compar_PoPolitic" = "Polps", "Reparto_Riqueza" = "PpsSt", "Compar_PoEconomico" = "Eps", "Compar_PoMilitar" = "Mps", "Compro_Dhumanos" = "HrGen", "Compro_Igualdad" = "EqGen", 
+              "Compro_Democracia" = "HrDem", "Med_Proteccion" = "Prot", "Marco_Dhumanos" = "HrFra", "Marco_DCiviles" = "HrCp", "Marco_Dsocioecon" = "HrSec", "Supervision_Dhuman" = "HrNi",
+              "Control_Movilidad" = "HrMob", "Protocolos_Detencion" = "HrDet", "MediosComunica" = "Med", "Ciudadania" = "HrCit")
+#str(df2)   
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Transformar valores binarios
+df2$G_Femenino <- ifelse(df2$G_Femenino=='1','Con Mencion','Sin Mencion')
+df2$G_Masculino <- ifelse(df2$G_Masculino=='1','Con Mencion','Sin Mencion')
+df2$G_Sesualidad <- ifelse(df2$G_Sesualidad=='1','Con Mencion','Sin Mencion')
+df2$G_Familia <- ifelse(df2$G_Familia=='1','Con Mencion','Sin Mencion')
+df2$Def_Estado <- ifelse(df2$Def_Estado=='1','Con Mencion','Sin Mencion')
+df2$Inst_Politicas <- ifelse(df2$Inst_Politicas=='1','Con Mencion','Sin Mencion')
+df2$Soc_Civil <- ifelse(df2$Soc_Civil=='1','Con Mencion','Sin Mencion')
+df2$Lideres <- ifelse(df2$Lideres=='1','Con Mencion','Sin Mencion')
+df2$Compro_Dhumanos <- ifelse(df2$Compro_Dhumanos=='1','Con Mencion','Sin Mencion')
+df2$Marco_DCiviles <- ifelse(df2$Marco_DCiviles=='1','Con Mencion','Sin Mencion')
+df2$Marco_Dsocioecon <- ifelse(df2$Marco_Dsocioecon=='1','Con Mencion','Sin Mencion')
+df2$Control_Movilidad <- ifelse(df2$Control_Movilidad=='1','Con Mencion','Sin Mencion')
+df2$Protocolos_Detencion <- ifelse(df2$Protocolos_Detencion=='1','Con Mencion','Sin Mencion')
+#str(df2)   
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Transformamos resto de valores
+seleccion <- c("G_Jovenes", "G_Discapacidad","G_Ancianos","G_Migracion","G_Racistas","G_Religion","G_Indigenas","G_Otros_Grupos","G_Refugiados","G_Clase_Social","Confirma_Constitucion","Renov_Constitucional","Elecciones","Refor_PPoliticos","Admon_Public","Compar_PoPolitic","Reparto_Riqueza","Compar_PoEconomico","Compar_PoMilitar","Compro_Dhumanos","Compro_Igualdad","Compro_Democracia","Med_Proteccion","Marco_Dhumanos","Supervision_Dhuman","MediosComunica","Ciudadania")
+#df2[ , (names(df2) %in% seleccion)] <- ifelse(df2[ , (names(df2) %in% seleccion)]=='1','Mencion Retorica',df2[ , (names(df2) %in% seleccion)])
+#df2[ , (names(df2) %in% seleccion)] <- ifelse(df2[ , (names(df2) %in% seleccion)]=='2','Mencion Media',df2[ , (names(df2) %in% seleccion)])
+#df2[ , (names(df2) %in% seleccion)] <- ifelse(df2[ , (names(df2) %in% seleccion)]=='3','Mencion Sustancial', 'Sin Mencion')
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Grabar los datos en excel
+write.xlsx(df2, "dat_pax_agreements.xlsx", sheetName = "PeaceAgreements")
+```
